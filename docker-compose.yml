@@ -1,0 +1,53 @@
+version: '3'
+services:
+  eureka-discovery:
+    container_name: eureka-discovery
+    image: eureka-server
+    build: ./eureka-discovery
+    #restart: always
+    expose:
+      - 8761
+    ports:
+      - 8761:8761
+
+  config-server:
+    image: config-server
+    container_name: config-server
+    build: ./config-server
+    #restart: always
+    expose:
+      - 8888
+    links:
+      - eureka-discovery
+    ports:
+      - 8888:8888
+    depends_on:
+      - eureka-discovery
+    environment:
+      server.port: 8888
+      eureka.client.enabled: 'true'
+      eureka.host: eureka-discovery
+      eureka.instance.preferIpAddress: 'true'
+
+  gateway-service:
+    image: gateway-service
+    container_name: gateway-service
+    build: ./gateway-service
+    #restart: always
+    expose:
+      - 8080
+    ports:
+      - 8080:8080
+    links:
+      - eureka-discovery
+      - config-server
+    depends_on:
+      - eureka-discovery
+      - config-server
+    environment:
+      server.port: 8080
+      eureka.client.enabled: 'true'
+      eureka.host: eureka-discovery
+      eureka.instance.preferIpAddress: 'true'
+      spring.cloud.config.enabled: 'true'
+      spring.cloud.config.service-id: config-server
